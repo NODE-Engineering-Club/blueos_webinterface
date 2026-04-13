@@ -7,11 +7,11 @@ The 'my-gps-tracker' is already in the raspberry pi. Check by typing ls.
 
 Then build the docker image and execcute these commands:
 
-'''
+```
 sudo docker build -t local/my-gps-tracker .
 
 sudo docker run --network host local/my-gps-tracker
-'''
+```
 
 Once you run these codes are executed, Check in the local webserver:
-'''http://192.168.2.2:8080'''
+```http://192.168.2.2:8080```
