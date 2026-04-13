@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Boat GPS Tracker</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; background: #000; color: #00ff00; font-family: 'Courier New', monospace; overflow: hidden; }
+        #map { height: 100vh; width: 100vw; }
+        .telemetry-overlay {
+            position: absolute; top: 20px; left: 60px; z-index: 1000;
+            background: rgba(0,0,0,0.85); padding: 15px;
+            border: 2px solid #00ff00; border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,255,0,0.3); min-width: 220px;
+        }
+        .label { color: #007700; font-size: 0.75em; margin-top: 6px; }
+        .value { font-size: 1em; }
+        #status {
+            display: inline-block; padding: 2px 8px; border-radius: 3px;
+            font-size: 0.8em; font-weight: bold; margin-bottom: 10px;
+            background: #004400; color: #00ff00; border: 1px solid #00ff00;
+        }
+        #status.waiting { background: #440000; color: #ff4444; border-color: #ff4444; }
+    </style>
+</head>
+<body>
+    <div class="telemetry-overlay">
+        <div style="font-weight:bold; font-size:1.1em; margin-bottom:8px;">⚓ BOAT GPS TRACKER</div>
+        <div id="status" class="waiting">WAITING FOR FIX...</div>
+        <div class="label">LATITUDE</div>
+        <div class="value" id="lat">--</div>
+        <div class="label">LONGITUDE</div>
+        <div class="value" id="lon">--</div>
+        <div class="label">ALTITUDE (m)</div>
+        <div class="value" id="alt">--</div>
+        <div class="label">RELATIVE ALT (m)</div>
+        <div class="value" id="rel_alt">--</div>
+    </div>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map', { zoomControl: false }).setView([0, 0], 2);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+
+        const marker = L.circleMarker([0, 0], { color: '#00ff00', radius: 8, fillOpacity: 0.8 }).addTo(map);
+        const track  = L.polyline([], { color: '#00ff00', weight: 3, opacity: 0.6 }).addTo(map);
+        let firstFix = true;
+
+        async function fetchGPS() {
+            try {
+                // Fetch from our own proxy — no CORS issues
+                const res  = await fetch('/api/gps');
+                const data = await res.json();
+
+                if (data.error) throw new Error(data.error);
+
+                const msg     = data.message;
+                const lat     = msg.lat / 1e7;
+                const lon     = msg.lon / 1e7;
+                const alt     = msg.alt / 1000;
+                const rel_alt = msg.relative_alt / 1000;
+
+                const pos = [lat, lon];
+                marker.setLatLng(pos);
+                track.addLatLng(pos);
+                if (firstFix) { map.setView(pos, 16); firstFix = false; }
+
+                document.getElementById('status').textContent = 'GPS ACTIVE';
+                document.getElementById('status').className  = '';
+                document.getElementById('lat').textContent   = lat.toFixed(6) + '\u00b0';
+                document.getElementById('lon').textContent   = lon.toFixed(6) + '\u00b0';
+                document.getElementById('alt').textContent   = alt.toFixed(1) + ' m';
+                document.getElementById('rel_alt').textContent = rel_alt.toFixed(1) + ' m';
+
+            } catch (err) {
+                document.getElementById('status').textContent = 'WAITING FOR FIX...';
+                document.getElementById('status').className  = 'waiting';
+                console.log("GPS error:", err);
+            }
+        }
+
+        setInterval(fetchGPS, 1000);
+        fetchGPS();
+    </script>
+</body>
+</html>
