@@ -10,7 +10,10 @@ Then build the docker image and execcute these commands:
 ```
 sudo docker build -t local/my-gps-tracker .
 
-sudo docker run --network host local/my-gps-tracker
+sudo docker run --network host \
+  --device /dev/video0 \
+  --device /dev/ttyUSB0 \
+  local/my-gps-tracker
 ```
 
 Once you run these codes are executed, Check in the local webserver:
